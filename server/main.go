@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"os"
 )
@@ -27,7 +28,7 @@ func main() {
 	checkError(err)
 	defer netListen.Close()
 
-	log("Waiting for clients")
+	logs("Waiting for clients")
 
 	for {
 		conn, err := netListen.Accept()
@@ -35,7 +36,7 @@ func main() {
 			continue
 		}
 
-		log(conn.RemoteAddr().String(), " tcp connect success")
+		logs(conn.RemoteAddr().String(), " tcp connect success")
 
 		go handleConnection(conn)
 	}
@@ -49,7 +50,7 @@ func handleConnection(conn net.Conn) {
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
-			log(conn.RemoteAddr().String(), " connection error: ", err)
+			logs(conn.RemoteAddr().String(), " connection error: ", err)
 			return
 		}
 
@@ -63,7 +64,7 @@ func handleConnection(conn net.Conn) {
 			go clientHandle(conn, u.ID)
 			return
 		default:
-			log("客户端类型错误：", string(buffer[:n]))
+			logs("客户端类型错误：", string(buffer[:n]))
 			return
 		}
 	}
@@ -72,7 +73,7 @@ func handleConnection(conn net.Conn) {
 //appHandle 用于处理app的连接
 func appHandle(conn net.Conn, id int) {
 	defer conn.Close()
-	log("appHandle收到请求：")
+	logs("appHandle收到请求：")
 	//不停的从list读取数据
 	for {
 		if cq.Len() > 0 {
@@ -89,14 +90,14 @@ func appHandle(conn net.Conn, id int) {
 
 //clientHandle 用于处理硬件的连接,不断从硬件读取数据
 func clientHandle(conn net.Conn, id int) {
-	log("clientHandle收到请求：")
+	logs("clientHandle收到请求：")
 	defer conn.Close()
 	buffer := make([]byte, 2048)
 
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
-			log(conn.RemoteAddr().String(), " connection error: ", err)
+			logs(conn.RemoteAddr().String(), " connection error: ", err)
 			return
 		}
 
@@ -104,7 +105,7 @@ func clientHandle(conn net.Conn, id int) {
 		json.Unmarshal(buffer[:n], c)
 
 		if c.Lat == "" || c.Lon == "" {
-			log("数据格式错误：", c)
+			logs("数据格式错误：", c)
 			continue
 		}
 
@@ -112,7 +113,7 @@ func clientHandle(conn net.Conn, id int) {
 	}
 }
 
-func log(v ...interface{}) {
+func logs(v ...interface{}) {
 	log.Println(v...)
 }
 
