@@ -10,14 +10,14 @@ import (
 )
 
 type clients struct {
-	Lon  string
-	Lat  string
-	Fall int
+	Lon  string `json:"lon"`
+	Lat  string `json:"lat"`
+	Fall int    `json:"fall"`
 }
 
 type user struct {
-	ID    int
-	Types string
+	ID    int    `json:"id"`
+	Types string `json:"type"`
 }
 
 var clientMap = make(map[int]*list.List)
