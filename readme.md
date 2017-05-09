@@ -17,7 +17,7 @@ golang socket 转发测试
 
 ```json
 {
-  "id":1
+  "id":1,
   "type":"client" //或者是 user
 }
 ```
@@ -26,8 +26,8 @@ golang socket 转发测试
 
 ```json
 {
-  "lat":"11.3"
-  "lon":"111.1"
+  "lat":"11.3",
+  "lon":"111.1",
   "fall":"1" //1：摔倒，0:正常
 }
 ```
