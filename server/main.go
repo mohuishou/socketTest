@@ -20,7 +20,7 @@ type user struct {
 	Types string
 }
 
-var cq = list.New()
+var clientMap = make(map[int]*list.List)
 
 func main() {
 	//建立socket，监听端口
@@ -58,10 +58,16 @@ func handleConnection(conn net.Conn) {
 		json.Unmarshal(buffer[:n], u)
 		switch u.Types {
 		case "app":
-			go appHandle(conn, u.ID)
+			if clientMap[u.ID] == nil {
+				clientMap[u.ID] = list.New()
+			}
+			go appHandle(conn, clientMap[u.ID])
 			return
 		case "client":
-			go clientHandle(conn, u.ID)
+			if clientMap[u.ID] == nil {
+				clientMap[u.ID] = list.New()
+			}
+			go clientHandle(conn, clientMap[u.ID])
 			return
 		default:
 			logs("客户端类型错误：", string(buffer[:n]))
@@ -71,7 +77,7 @@ func handleConnection(conn net.Conn) {
 }
 
 //appHandle 用于处理app的连接
-func appHandle(conn net.Conn, id int) {
+func appHandle(conn net.Conn, cq *list.List) {
 	defer conn.Close()
 	logs("appHandle收到请求：")
 	//不停的从list读取数据
@@ -83,13 +89,12 @@ func appHandle(conn net.Conn, id int) {
 				checkError(err)
 				conn.Write(words)
 			}
-
 		}
 	}
 }
 
 //clientHandle 用于处理硬件的连接,不断从硬件读取数据
-func clientHandle(conn net.Conn, id int) {
+func clientHandle(conn net.Conn, cq *list.List) {
 	logs("clientHandle收到请求：")
 	defer conn.Close()
 	buffer := make([]byte, 2048)

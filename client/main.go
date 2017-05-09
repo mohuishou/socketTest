@@ -48,7 +48,6 @@ func main() {
 	// }
 	fmt.Println("connect success")
 	sender(conn)
-
 }
 
 func handleConnection(conn net.Conn) {
