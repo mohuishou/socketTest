@@ -20,6 +20,11 @@ type user struct {
 	Types string `json:"type"`
 }
 
+type returnData struct {
+	Status int    `json:"status"`
+	Msg    string `json:"msg"`
+}
+
 var clientMap = make(map[int]*list.List)
 
 func main() {
@@ -61,12 +66,14 @@ func handleConnection(conn net.Conn) {
 			if clientMap[u.ID] == nil {
 				clientMap[u.ID] = list.New()
 			}
+			handleReturn(conn, 1, "app连接成功！")
 			go appHandle(conn, clientMap[u.ID])
 			return
 		case "client":
 			if clientMap[u.ID] == nil {
 				clientMap[u.ID] = list.New()
 			}
+			handleReturn(conn, 1, "client连接成功！")
 			go clientHandle(conn, clientMap[u.ID])
 			return
 		default:
@@ -74,6 +81,12 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 	}
+}
+
+func handleReturn(conn net.Conn, status int, msg string) {
+	words, err := json.Marshal(&returnData{Status: status, Msg: msg})
+	checkError(err)
+	conn.Write(words)
 }
 
 //appHandle 用于处理app的连接
@@ -102,6 +115,7 @@ func clientHandle(conn net.Conn, cq *list.List) {
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
+			handleReturn(conn, 0, "数据错误！"+err.Error())
 			logs(conn.RemoteAddr().String(), " connection error: ", err)
 			return
 		}
@@ -115,6 +129,11 @@ func clientHandle(conn net.Conn, cq *list.List) {
 		}
 
 		cq.PushBack(c)
+
+		//最多缓存十条数据
+		if cq.Len() > 10 {
+			cq.Remove(cq.Front())
+		}
 	}
 }
 
