@@ -24,6 +24,7 @@ func TestServer(t *testing.T) {
 	logs("创建client客户端")
 	clientConn := newClient()
 	send(clientConn, &user{ID: 1, Types: "client"})
+	time.Sleep(time.Second)
 	send(clientConn, &clients{Fall: 0, Lat: "sss", Lon: "111"})
 	time.Sleep(time.Second)
 
@@ -47,13 +48,15 @@ func newClient() net.Conn {
 
 func appTestHandle(conn net.Conn) {
 	buffer := make([]byte, 2048)
-	n, err := conn.Read(buffer)
+	for {
+		n, err := conn.Read(buffer)
 
-	if err != nil {
-		logs(conn.RemoteAddr().String(), "appTestHandle connection error: ", err)
-		return
+		if err != nil {
+			logs(conn.RemoteAddr().String(), "appTestHandle connection error: ", err)
+			return
+		}
+		logs(conn.RemoteAddr().String(), "receive data string:\n", string(buffer[:n]))
 	}
-	logs(conn.RemoteAddr().String(), "receive data string:\n", string(buffer[:n]))
 }
 
 func send(conn net.Conn, c interface{}) {

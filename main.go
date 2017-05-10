@@ -78,11 +78,13 @@ func handleConnection(conn net.Conn) {
 			return
 		default:
 			logs("客户端类型错误：", string(buffer[:n]))
+			handleReturn(conn, 0, "客户端类型错误！")
 			return
 		}
 	}
 }
 
+//对连接返回信息
 func handleReturn(conn net.Conn, status int, msg string) {
 	words, err := json.Marshal(&returnData{Status: status, Msg: msg})
 	checkError(err)
