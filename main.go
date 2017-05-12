@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type clients struct {
@@ -25,11 +26,14 @@ type returnData struct {
 	Msg    string `json:"msg"`
 }
 
+var appConns = make(map[int]net.Conn)
+var clientConns = make(map[int]net.Conn)
+
 var clientMap = make(map[int]*list.List)
 
 func main() {
 	//建立socket，监听端口
-	netListen, err := net.Listen("tcp", "localhost:1024")
+	netListen, err := net.Listen("tcp", "0.0.0.0:6566")
 	checkError(err)
 	defer netListen.Close()
 
@@ -66,6 +70,10 @@ func handleConnection(conn net.Conn) {
 			if clientMap[u.ID] == nil {
 				clientMap[u.ID] = list.New()
 			}
+			if appConns[u.ID] != nil {
+				appConns[u.ID].Close()
+			}
+			appConns[u.ID] = conn
 			handleReturn(conn, 1, "app连接成功！")
 			go appHandle(conn, clientMap[u.ID])
 			return
@@ -73,12 +81,19 @@ func handleConnection(conn net.Conn) {
 			if clientMap[u.ID] == nil {
 				clientMap[u.ID] = list.New()
 			}
+			if clientConns[u.ID] == nil {
+				clientConns[u.ID] = conn
+			} else {
+				clientConns[u.ID].Close()
+				clientConns[u.ID] = conn
+			}
 			handleReturn(conn, 1, "client连接成功！")
 			go clientHandle(conn, clientMap[u.ID])
 			return
 		default:
-			logs("客户端类型错误：", string(buffer[:n]))
+			logs("客户端类型错误：", u, string(buffer[:n]))
 			handleReturn(conn, 0, "客户端类型错误！")
+			conn.Close()
 			return
 		}
 	}
@@ -96,12 +111,15 @@ func appHandle(conn net.Conn, cq *list.List) {
 	defer conn.Close()
 	logs("appHandle收到请求：")
 	//不停的从list读取数据
+	ch := time.NewTicker(time.Second)
 	for {
+		<-ch.C
 		if cq.Len() > 0 {
 			if c, ok := cq.Front().Value.(*clients); ok {
 				cq.Remove(cq.Front())
 				words, err := json.Marshal(c)
 				checkError(err)
+				logs("app:", string(words))
 				conn.Write(words)
 			}
 		}
@@ -127,8 +145,11 @@ func clientHandle(conn net.Conn, cq *list.List) {
 
 		if c.Lat == "" || c.Lon == "" {
 			logs("数据格式错误：", c)
+			handleReturn(conn, 0, "数据格式错误！")
 			continue
 		}
+
+		logs(c)
 
 		cq.PushBack(c)
 
